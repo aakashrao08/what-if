@@ -11,7 +11,7 @@ the engine; every sentence is checked by a Verifier before anyone sees it.
 
 - **Live:** https://icy-rock-0e0b6b300.4.azurestaticapps.net
 - **Demo video (under 2 minutes):** *added at submission*
-- **Category:** Best Multi-Agent System
+- **Category:** Best Multi-Agent Orchestration
 
 Everything is synthetic: 20 invented clubs, 500 invented players, a 380-game season. No real club,
 player, competition or mark appears anywhere in the data, the interface or this repository (a test
@@ -60,11 +60,11 @@ GitHub's identity-based deploys.
 
 | Criterion | Where to see it |
 | --- | --- |
-| **Technological implementation** | A deterministic synthetic league (`forge/`, reproducible to the byte); an engine that computes live win probability exactly over every scoreline (`src/engine/match.ts`); 100+ tests, including 1,000+ generated cards through the Verifier and a repo-wide real-name guard; Foundry, Static Web Apps + Functions, Cosmos DB, Application Insights, MCP; CI that tests, builds and deploys on every push. |
+| **Technological implementation** | A deterministic synthetic league (`forge/`, reproducible to the byte); an engine that computes live win probability exactly over every scoreline (`src/engine/match.ts`); 110+ tests, including 1,000+ generated cards through the Verifier and a repo-wide real-name guard; Microsoft Foundry, Static Web Apps + Functions, Azure Cosmos DB, Application Insights, Azure AI Speech, MCP; CI that tests, builds and deploys on every push; a strict security policy and bounded endpoints ([SECURITY.md](SECURITY.md)). |
 | **Agentic design & innovation** | Seven agents with distinct roles that hand off through shared facts (router → Data Scientist / Dr Football → Analyst → Narrator ⇄ Verifier, plus the Scout). Tool calling over the real engine; final tools that validate answers and send refusals back; a code-plus-model Verifier loop; deterministic recovery at every step; "What would it take?", a search over ~50 counterfactual universes; the engine exposed over MCP. |
-| **Real-world impact** | A studio tool that answers on air with checked numbers; a machine-readable cue feed for broadcast graphics; automated recaps; personalised alerts; costs bounded by caching, rate limits and a daily cap; every run logged. |
-| **User experience & presentation** | One question box that routes you; the same intelligence as a casual, a fan's or an analyst's experience in seven languages; checked on phone and desktop; screens load on demand. |
-| **Category: multi-agent** | Distinct roles, shared state (the facts each agent passes on), visible hand-offs (the trace, the router's note), recovery from failure (rulebook and template fallbacks, re-verification in the browser), and outcomes no single agent produces alone. |
+| **Real-world impact & applicability** | A studio tool that answers on air with checked numbers; a machine-readable cue feed for broadcast graphics; automated recaps in seven languages, read aloud; personalised alerts. Production-ready: deployed on Azure, every agent run logged to Cosmos DB and Application Insights, costs bounded by caching, rate limits and daily caps, and one schema for plugging in a licensed live feed. |
+| **User experience & presentation** | One question box (typed or spoken) that routes you; the same intelligence as a casual, a fan's or an analyst's experience in seven languages, any explanation read aloud; checked on phone and desktop; screens load on demand. |
+| **Adherence to category: Best Multi-Agent Orchestration** | Seven specialised agents with distinct roles, coordinating through shared state (the named facts each passes on) and explicit hand-offs (the router's note on the destination screen, `route_to`, `choose_test`, `submit_scenario`). They recover from failure (refusals sent back to the agent, rulebook and template fallbacks, the Narrator ⇄ Verifier redraft loop, re-verification in the browser) and deliver what no single agent could: a tested, written, checked answer in the reader's language. Orchestrated by our own tool-calling loop on Microsoft Foundry, with the engine also exposed over MCP so GitHub Copilot agent mode (`.vscode/mcp.json`) can orchestrate the same tools. Every hand-off is visible in the trace. |
 
 ## The pipeline
 
