@@ -2,6 +2,8 @@
 
 **Same match. Different ending.**
 
+![The Swing: a saved penalty flagged as a turning point, explained from the Northbridge fan's side, with the broadcast overlay on the pitch](docs/hero.jpg)
+
 what if? takes a football match as it happens and asks what else could have happened. It finds the
 moments that changed the result, replays the ones that nearly did, and plays the rest of the season
 out 10,000 times to show who else the result moved. A team of agents on Microsoft Foundry decides
