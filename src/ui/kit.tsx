@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import type { PitchFrame, Side } from '../data/types';
 import { player } from '../data/league';
@@ -303,4 +303,26 @@ export function MicButton({ lang, onText, disabled }: { lang: Lang; onText: (tex
       {note && <span className="small mic-note" role="status">{note}</span>}
     </span>
   );
+}
+
+function ScreenError({ onRetry }: { onRetry: () => void }) {
+  const t = useT();
+  return (
+    <div className="panel pad stack-12" role="alert" style={{ alignItems: 'flex-start' }}>
+      <span className="kicker signal">{t('Something went wrong on this screen').toUpperCase()}</span>
+      <p className="body" style={{ maxWidth: 620 }}>{t('The rest of the site is fine. Try this screen again, or head back home.')}</p>
+      <span className="wrap" style={{ gap: 10 }}>
+        <button type="button" className="btn btn-primary" onClick={onRetry}>{t('Try again')}</button>
+        <Link to="/" className="btn">{t('Home')}</Link>
+      </span>
+    </div>
+  );
+}
+
+/** A screen that throws shows a way out instead of a blank page; moving to another screen clears it. */
+export class ScreenBoundary extends Component<{ children: ReactNode; resetKey: string }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidUpdate(prev: { resetKey: string }) { if (prev.resetKey !== this.props.resetKey && this.state.failed) this.setState({ failed: false }); }
+  render() { return this.state.failed ? <ScreenError onRetry={() => this.setState({ failed: false })} /> : this.props.children; }
 }

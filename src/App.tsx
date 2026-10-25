@@ -3,7 +3,7 @@ import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { PrefsProvider } from './state/prefs';
 import { MatchProvider } from './state/match';
 import { I18nProvider } from './state/i18n';
-import { Header, Loading, SkipLink } from './ui/kit';
+import { Header, Loading, ScreenBoundary, SkipLink } from './ui/kit';
 import Home from './screens/Home';
 // every screen but Home loads when it's first visited, so the first page arrives sooner
 const Swing = lazy(() => import('./screens/Swing'));
@@ -38,6 +38,7 @@ function Shell() {
       <SkipLink />
       <Header />
       <main id="main" tabIndex={-1} style={{ outline: 'none', display: 'contents' }}>
+      <ScreenBoundary resetKey={pathname}>
       <Suspense fallback={<Loading>Loading…</Loading>}>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -53,6 +54,7 @@ function Shell() {
         <Route path="*" element={<Home />} />
       </Routes>
       </Suspense>
+      </ScreenBoundary>
       </main>
     </div>
   );

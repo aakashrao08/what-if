@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useShown, useT } from '../state/i18n';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { league, surname, club } from '../data/league';
@@ -28,7 +28,15 @@ export default function Ghost() {
   const t = useT();
   const shown = useShown();
   const owner = id ? league.feeds.find((f) => f.stoppedAttacks.some((a) => a.id === decodeURIComponent(id))) : undefined;
-  useEffect(() => { if (owner && owner.fixtureId !== feed.fixtureId) setFixture(owner.fixtureId); }, [owner, feed.fixtureId, setFixture]);
+  // a link to one attack (/ghost/<id>) opens that attack's match, once per link...
+  const synced = useRef(false);
+  useEffect(() => { synced.current = false; if (owner && owner.fixtureId !== feed.fixtureId) setFixture(owner.fixtureId); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ...and picking another match in the ticker afterwards leaves that link behind instead of snapping back
+  useEffect(() => {
+    if (!id || !owner) return;
+    if (feed.fixtureId === owner.fixtureId) { synced.current = true; return; }
+    if (synced.current) nav('/ghost', { replace: true });
+  }, [feed.fixtureId, id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ghosts) return <Loading>{t('Playing each stopped attack on 500 times…')}</Loading>;
 
   const attacks = feed.stoppedAttacks.filter((a) => a.minute <= minute);

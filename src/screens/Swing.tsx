@@ -61,13 +61,15 @@ export default function Swing() {
   const shown = useShown();
   const pov = persona === 'away' ? 'away' : 'home';
   const tps = useMemo(() => (tl ? turningPoints(tl, minute) : []), [tl, minute]);
-  const [credit, setCredit] = useState<CreditResult | null>(null);
+  const mom = useMemo(() => momentum(feed), [feed]); // before the loading return: hooks run in the same order every render
+  // tagged with its match: right after switching matches, the previous match's credit must not be drawn
+  const [creditOf, setCreditOf] = useState<{ fixtureId: string; c: CreditResult } | null>(null);
   useEffect(() => {
     let on = true;
-    setCredit(null);
-    cached('credit', { fixtureId: feed.fixtureId }).then((c) => { if (on) setCredit(c); });
+    cached('credit', { fixtureId: feed.fixtureId }).then((c) => { if (on) setCreditOf({ fixtureId: feed.fixtureId, c }); });
     return () => { on = false; };
   }, [feed.fixtureId]);
+  const credit = creditOf?.fixtureId === feed.fixtureId ? creditOf.c : null;
 
   useEffect(() => {
     if (follow && tps.length) setSelected(tps[tps.length - 1].id);
@@ -105,7 +107,6 @@ export default function Swing() {
   });
 
   const stats = liveStats(league, minute, feed);
-  const mom = useMemo(() => momentum(feed), [feed]);
   const labels = personaLabels(H.short, A.short);
   const scorers = score.scorers.map((s) => `${surname(s.player)} ${s.label}`).join(' · ');
 
