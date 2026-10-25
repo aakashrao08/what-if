@@ -194,6 +194,11 @@ only with unusual first names), roles assigned from attributes, and role-based s
 Real-world names the app must never produce or accept are stored only as one-way hashes
 (`src/data/denylist.ts`), and a test scans every tracked file.
 
+**Bringing real data.** Nothing downstream knows the league is synthetic. The engine, the agents and
+every screen read one schema (`src/data/types.ts`: clubs, players, fixtures and a match feed of timed
+events with xG and tracking numbers). A licensed live feed is mapped onto that schema, and the same
+pipeline runs on it unchanged.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
