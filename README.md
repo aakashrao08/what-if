@@ -12,7 +12,7 @@ fan, a club's fan or an analyst, in seven languages across the whole site. Every
 the engine; every sentence is checked by a Verifier before anyone sees it.
 
 - **Live:** https://icy-rock-0e0b6b300.4.azurestaticapps.net
-- **Demo video (under 2 minutes):** *added at submission*
+- **Demo video (1:54):** https://youtu.be/q20Dyz6hT-Y
 - **Category:** Best Multi-Agent Orchestration
 
 Everything is synthetic: 20 invented clubs, 500 invented players, a 380-game season. No real club,
