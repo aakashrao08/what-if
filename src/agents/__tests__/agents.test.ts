@@ -139,3 +139,26 @@ describe('interface dictionary', () => {
     }
   });
 });
+
+describe('saved settings', () => {
+  it('survive stale or malformed data instead of breaking a screen', async () => {
+    const { sanitize } = await import('../../state/prefs');
+    for (const junk of [null, 42, 'x', [], { club: 7, players: 'NBR-9', alerts: null, profile: [], universes: {} }]) {
+      const p = sanitize(junk);
+      expect(p.club).toBe('NBR');
+      expect(Array.isArray(p.players) && Array.isArray(p.universes)).toBe(true);
+    }
+    const p = sanitize({ club: 'GONE', also: ['WYV', 'NOPE', 'WYV'], players: ['NBR-9', 'XXX-1'], focus: 'XXX-1', lang: 'fr', watchAs: 'boss', threshold: 99, profile: { name: 'A'.repeat(500), avatar: 'red;background:url(x)' } });
+    expect(p.club).toBe('NBR');
+    expect(p.also).toEqual(['WYV']);
+    expect(p.players).toEqual(['NBR-9']);
+    expect(p.focus).toBe('NBR-9');
+    expect(p.lang).toBe('en');
+    expect(p.watchAs).toBeNull();
+    expect(p.threshold).toBe(15);
+    expect(p.profile.name.length).toBeLessThanOrEqual(60);
+    expect(p.profile.avatar).toMatch(/^#[0-9A-F]{6}$/i);
+    const kept = sanitize({ club: 'HAR', lang: 'ta', depth: 'analyst', threshold: 10, alerts: { swing: false } });
+    expect([kept.club, kept.lang, kept.depth, kept.threshold, kept.alerts.swing, kept.alerts.ghost]).toEqual(['HAR', 'ta', 'analyst', 10, false, true]);
+  });
+});

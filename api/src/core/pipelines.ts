@@ -20,7 +20,7 @@ import { universeView, type UniverseStoryVoices } from '../../../src/agents/narr
 import { experimentSize, passingTemplate, settleText } from '../../../src/agents/settleView';
 import { candidates, parseGoal, takesView, type Goal } from '../../../src/agents/takes';
 import type { ChatFn } from './model';
-import { addUsage, emptyUsage, runAgent } from './loop';
+import { addUsage, emptyUsage, runAgent, safeError } from './loop';
 import { PROMPTS } from './prompts';
 import { dataScientistTools, drFootballTools, goalTools, routerTools } from './tools';
 import { routeQuestion } from '../../../src/agents/router';
@@ -71,7 +71,7 @@ export async function settlePipeline(deps: PipelineDeps, question: string): Prom
     if (run.final?.tool === 'choose_test') ({ spec, why } = run.final.value as { spec: ExperimentSpec; why: string });
     if (run.final?.tool === 'cannot_test') refused = (run.final.value as { reason: string }).reason;
   } catch (err) {
-    trace.push({ agent: 'Data Scientist', kind: 'note', name: 'model error', detail: String(err).slice(0, 160), ms: 0 });
+    trace.push({ agent: 'Data Scientist', kind: 'note', name: 'model error', detail: safeError(err), ms: 0 });
   }
   const rules = designExperiment(league, question);
   if (!spec && rules) {
@@ -105,7 +105,7 @@ export async function settlePipeline(deps: PipelineDeps, question: string): Prom
       return r && typeof r.line === 'string' && typeof r.script === 'string' && r.line.length > 8 && r.script.length > 20 ? { line: r.line.trim(), script: r.script.trim() } : null;
     },
     text: (v) => settleText({ ...template, line: v.line, script: v.script })
-  }).catch((err) => ({ value: null, drafts: 0, flags: [`Narrator unavailable: ${String(err).slice(0, 120)}`], trace: [] as TraceEvent[], usage: emptyUsage() }));
+  }).catch((err) => ({ value: null, drafts: 0, flags: [`Narrator unavailable: ${safeError(err)}`], trace: [] as TraceEvent[], usage: emptyUsage() }));
   trace.push(...written.trace); usage = addUsage(usage, written.usage);
   const writeMs = Math.round(now() - t);
   const checked = Number([...written.trace].reverse().find((e) => e.name === 'numbers')?.detail.match(/^(\d+) numbers/)?.[1] ?? 0);
@@ -146,7 +146,7 @@ export async function multiversePipeline(deps: PipelineDeps, question: string): 
     if (run.final?.tool === 'submit_scenario') picked = run.final.value as { sentence: string; parsed: Parsed };
     if (run.final?.tool === 'reject_scenario') refused = (run.final.value as { reason: string }).reason;
   } catch (err) {
-    trace.push({ agent: 'Dr Football', kind: 'note', name: 'model error', detail: String(err).slice(0, 160), ms: 0 });
+    trace.push({ agent: 'Dr Football', kind: 'note', name: 'model error', detail: safeError(err), ms: 0 });
   }
   const rules = drFootball(league, question);
   if (!picked && rules.ok) {
@@ -181,7 +181,7 @@ export async function multiversePipeline(deps: PipelineDeps, question: string): 
       return Object.fromEntries(VOICES.map((v) => [v, { head: String(r[v].head).trim(), sub: String(r[v].sub).trim() }])) as unknown as UniverseStoryVoices;
     },
     text: storyText
-  }).catch((err) => ({ value: null, drafts: 0, flags: [`Narrator unavailable: ${String(err).slice(0, 120)}`], trace: [] as TraceEvent[], usage: emptyUsage() }));
+  }).catch((err) => ({ value: null, drafts: 0, flags: [`Narrator unavailable: ${safeError(err)}`], trace: [] as TraceEvent[], usage: emptyUsage() }));
   trace.push(...written.trace); usage = addUsage(usage, written.usage);
   const writeMs = Math.round(now() - t);
 
@@ -214,7 +214,7 @@ export async function takesPipeline(deps: PipelineDeps, question: string, body: 
     if (run.final?.tool === 'submit_goal') goal = run.final.value as Goal;
     if (run.final?.tool === 'reject_goal') refused = (run.final.value as { reason: string }).reason;
   } catch (err) {
-    trace.push({ agent: 'Dr Football', kind: 'note', name: 'model error', detail: String(err).slice(0, 160), ms: 0 });
+    trace.push({ agent: 'Dr Football', kind: 'note', name: 'model error', detail: safeError(err), ms: 0 });
   }
   const rules = parseGoal(league, question, myClub);
   if (!goal && !refused && !('error' in rules)) {
@@ -245,7 +245,7 @@ export async function takesPipeline(deps: PipelineDeps, question: string, body: 
     template: { head: view.head, sub: view.sub },
     read: (raw) => { const r = raw as { head?: unknown; sub?: unknown } | null; return r && typeof r.head === 'string' && typeof r.sub === 'string' && r.head.length > 3 && r.sub.length > 20 ? { head: r.head.trim(), sub: r.sub.trim() } : null; },
     text
-  }).catch((err) => ({ value: null, drafts: 0, flags: [`Narrator unavailable: ${String(err).slice(0, 120)}`], trace: [] as TraceEvent[], usage: emptyUsage() }));
+  }).catch((err) => ({ value: null, drafts: 0, flags: [`Narrator unavailable: ${safeError(err)}`], trace: [] as TraceEvent[], usage: emptyUsage() }));
   trace.push(...written.trace); usage = addUsage(usage, written.usage);
   const writeMs = Math.round(now() - t);
 
@@ -302,7 +302,7 @@ export async function scoutPipeline(deps: PipelineDeps, req: ScoutRequest): Prom
     try {
       res = await chat([{ role: 'system', content: PROMPTS.scout }, { role: 'user', content: user }], { json: true, maxTokens: 120 + 70 * todo.length, temperature: 0.5 });
     } catch (err) {
-      trace.push({ agent: 'Scout', kind: 'note', name: 'model error', detail: String(err).slice(0, 160), ms: 0 });
+      trace.push({ agent: 'Scout', kind: 'note', name: 'model error', detail: safeError(err), ms: 0 });
       break;
     }
     usage.calls++; usage.promptTokens += res.usage.prompt; usage.completionTokens += res.usage.completion;
@@ -364,7 +364,7 @@ export async function recapPipeline(deps: PipelineDeps, req: RecapRequest): Prom
         ? { headline: r.headline.trim(), paragraphs: (r.paragraphs as string[]).map((x) => x.trim()) } : null;
     },
     text: (v) => [v.headline, ...v.paragraphs].join(' ')
-  }).catch((err) => ({ value: null, drafts: 0, flags: [`Narrator unavailable: ${String(err).slice(0, 120)}`], trace: [] as TraceEvent[], usage: emptyUsage() }));
+  }).catch((err) => ({ value: null, drafts: 0, flags: [`Narrator unavailable: ${safeError(err)}`], trace: [] as TraceEvent[], usage: emptyUsage() }));
   trace.push(...written.trace); usage = addUsage(usage, written.usage);
   const steps: AgentStep[] = [
     stepFrom('Analyst', trace, `Read the match · ${plural(Object.keys(template.facts).length, 'fact')}`),
@@ -388,7 +388,7 @@ export async function askPipeline(deps: PipelineDeps, question: string): Promise
     trace.push(...run.trace); usage = addUsage(usage, run.usage);
     if (run.final?.tool === 'route_to') route = run.final.value as typeof route;
   } catch (err) {
-    trace.push({ agent: 'Router', kind: 'note', name: 'model error', detail: String(err).slice(0, 160), ms: 0 });
+    trace.push({ agent: 'Router', kind: 'note', name: 'model error', detail: safeError(err), ms: 0 });
   }
   if (!route) {
     route = routeQuestion(league, question);
@@ -409,12 +409,29 @@ export function readTranslate(body: unknown): TranslateRequest | { error: string
   const items: TranslateRequest['items'] = [];
   for (const it of b.items) {
     if (!it || typeof it.key !== 'string' || it.key.length > 64 || typeof it.text !== 'string' || !it.text.trim() || it.text.length > 800) return { error: 'Bad item.' };
+    // the site's own text never carries links, markup or instructions: a batch that does is someone
+    // trying to steer the translation of the other lines (and, through the shared cache, other visitors)
+    if (SUSPICIOUS.test(it.text)) return { error: 'Bad item.' };
     items.push({ key: it.key, text: it.text });
   }
   return { lang: b.lang!, items };
 }
 
 const translations = new LruCache<string>(4000); // line by line, so a line is only ever translated once per language
+
+const SUSPICIOUS = /https?:\/\/|www\.|[\w.+-]+@[\w-]+\.[a-z]{2,}|<\/?[a-z][^>]*>|\b(ignore|disregard)\b.{0,40}\b(instruction|rule|above|previous|prompt)|\bsystem prompt\b|\byou are now\b/i;
+const SCRIPT: Partial<Record<Lang, RegExp>> = { zh: /[\u4e00-\u9fff]/, ta: /[\u0b80-\u0bff]/, hi: /[\u0900-\u097f]/ };
+
+/** A translation only counts (and is only shared) if it looks like a translation of that line. */
+export function plausibleTranslation(source: string, text: string, lang: Lang): boolean {
+  if (SUSPICIOUS.test(text)) return false;
+  const ratio = text.length / Math.max(1, source.length);
+  if (ratio < 0.15 || ratio > 4) return false;
+  const script = SCRIPT[lang];
+  // a line with real words must come back in the language's own script (names alone may stay Latin)
+  if (script && /[a-z]{3,}\s+[a-z]{3,}/i.test(source) && !script.test(text)) return false;
+  return true;
+}
 
 /** Batch translation by the Narrator, every line checked: it may contain only the numbers its English source has. */
 export async function translatePipeline(deps: PipelineDeps, req: TranslateRequest): Promise<TranslateReply> {
@@ -435,7 +452,7 @@ export async function translatePipeline(deps: PipelineDeps, req: TranslateReques
     try {
       res = await chat([{ role: 'system', content: PROMPTS.translator }, { role: 'user', content: [`LANG: ${LANG_NAME[lang]} (${lang})`, `ITEMS: ${JSON.stringify(todo.map((it) => ({ key: it.key, text: it.text })))}`, fb.length ? `FEEDBACK: ${fb.join(' | ')}` : ''].filter(Boolean).join('\n') }], { json: true, maxTokens: Math.min(4000, 200 + todo.reduce((a, it) => a + it.text.length, 0)), temperature: 0.2 });
     } catch (err) {
-      trace.push({ agent: 'Narrator', kind: 'note', name: 'model error', detail: String(err).slice(0, 160), ms: 0 });
+      trace.push({ agent: 'Narrator', kind: 'note', name: 'model error', detail: safeError(err), ms: 0 });
       break;
     }
     usage.calls++; usage.promptTokens += res.usage.prompt; usage.completionTokens += res.usage.completion;
@@ -444,6 +461,7 @@ export async function translatePipeline(deps: PipelineDeps, req: TranslateReques
     for (const it of todo) {
       const text = got.find((g) => g.key === it.key)?.text;
       if (typeof text !== 'string' || !text.trim()) { feedback[it.key] = ['missing']; continue; }
+      if (!plausibleTranslation(it.text, text, lang)) { feedback[it.key] = ['Return a plain translation of this line only.']; continue; }
       const v = verify(text, factsFromText(it.text), lang);
       if (v.ok) { texts[it.key] = text.trim(); translations.set(lineKey(it.text), text.trim()); passed++; } else feedback[it.key] = v.issues.map((i) => i.detail);
     }

@@ -26,6 +26,18 @@ export interface AgentRun {
   usage: Usage;
 }
 
+/** An error as a reader may see it (in the trace or a tool result): never raw provider or database text.
+ *  The detail goes to the server log, which Application Insights collects. */
+export function safeError(err: unknown): string {
+  const raw = String(err);
+  console.warn(`agent_error_detail ${raw.slice(0, 300)}`);
+  const code = raw.match(/\b(4\d\d|5\d\d)\b/)?.[1];
+  if (code === '429') return 'the model is busy right now (rate limited)';
+  if (/abort|timed? ?out/i.test(raw)) return 'the model took too long';
+  if (code) return `the model service returned ${code}`;
+  return 'the service was unavailable';
+}
+
 export const emptyUsage = (): Usage => ({ calls: 0, promptTokens: 0, completionTokens: 0 });
 export const addUsage = (a: Usage, b: Usage): Usage => ({ calls: a.calls + b.calls, promptTokens: a.promptTokens + b.promptTokens, completionTokens: a.completionTokens + b.completionTokens });
 
@@ -86,7 +98,7 @@ export async function runAgent(o: {
       if (!tool) result = { error: `No tool called ${call.function.name}.` };
       else if (!args) result = { error: 'Arguments were not valid JSON.' };
       else {
-        try { result = await tool.run(args); } catch (err) { result = { error: `Tool failed: ${String(err).slice(0, 160)}` }; }
+        try { result = await tool.run(args); } catch (err) { result = { error: `Tool failed: ${safeError(err)}` }; }
       }
       const ms = Math.round(now() - t1);
       if (tool?.final && isVerdict(result)) {

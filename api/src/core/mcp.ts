@@ -16,7 +16,7 @@ import { matchRecap } from '../../../src/agents/recap';
 import { overlayCues } from '../../../src/agents/overlay';
 import { clubCard } from '../../../src/agents/currentAffairs';
 import type { Persona } from '../../../src/agents/format';
-import type { Tool } from './loop';
+import { safeError, type Tool } from './loop';
 import { dataScientistTools, drFootballTools, lookupTools, searchPlayersTool } from './tools';
 
 export const MCP_PROTOCOL = '2025-06-18';
@@ -161,7 +161,7 @@ export async function handleMcp(tools: Tool[], msg: unknown): Promise<unknown> {
         const isError = !!result && typeof result === 'object' && 'error' in (result as Json);
         return ok(req.id, { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: Array.isArray(result) ? { items: result } : result, isError });
       } catch (err) {
-        return ok(req.id, { content: [{ type: 'text', text: `Tool failed: ${String(err).slice(0, 200)}` }], isError: true });
+        return ok(req.id, { content: [{ type: 'text', text: `Tool failed: ${safeError(err)}` }], isError: true });
       }
     }
     default:

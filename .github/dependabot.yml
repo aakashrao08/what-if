@@ -1,0 +1,16 @@
+# Monthly update proposals (pull requests only; nothing merges on its own). Security fixes arrive
+# sooner through Dependabot security updates.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 3
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 3
+  - package-ecosystem: npm
+    directory: /api
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 3

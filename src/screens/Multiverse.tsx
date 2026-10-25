@@ -122,7 +122,7 @@ export default function Multiverse() {
         </div>
         <form onSubmit={submit} className="panel wrap" style={{ gap: 10, padding: 10, border: '1px solid #2A3240' }}>
           <label htmlFor="wi" className="sr">{t(mode === 'whatif' ? 'Your what-if' : 'Your goal')}</label>
-          <input id="wi" type="text" value={mode === 'whatif' ? prompt : goalText} onChange={(e) => (mode === 'whatif' ? setPrompt : setGoalText)(e.target.value)} placeholder={t(mode === 'whatif' ? 'What if…' : 'What would it take for…')}
+          <input id="wi" type="text" maxLength={300} value={mode === 'whatif' ? prompt : goalText} onChange={(e) => (mode === 'whatif' ? setPrompt : setGoalText)(e.target.value)} placeholder={t(mode === 'whatif' ? 'What if…' : 'What would it take for…')}
             style={{ flex: '1 1 420px', minWidth: 0, minHeight: 56, padding: '0 16px', border: 'none', borderRadius: 8, background: '#0B0F14', color: '#F2EFE6', fontFamily: 'var(--display)', fontWeight: 700, fontSize: 'clamp(18px, 2vw, 22px)' }} />
           <button type="submit" className="btn btn-primary" style={{ minHeight: 56, padding: '0 24px', fontSize: 16 }} disabled={phase === 'running'}>{t(mode === 'whatif' ? `Run ${RUNIN_SIMS.toLocaleString('en-GB')} seasons` : 'Find the smallest change')}</button>
         </form>
@@ -271,7 +271,7 @@ export default function Multiverse() {
       <section aria-labelledby="uni-h" className="col" style={{ gap: 0, paddingTop: 28, borderTop: '1px solid #222B38' }}>
         <div className="between" style={{ paddingBottom: 10 }}>
           <h2 id="uni-h" className="display" style={{ fontSize: 26 }}>{t('Your Universes')}</h2>
-          <Link to="/dugout" style={{ fontWeight: 600, textDecoration: 'none' }}>{t('All in My Dugout →')}</Link>
+          <Link to="/dugout" className="tap-link" style={{ fontWeight: 600, textDecoration: 'none' }}>{t('All in My Dugout →')}</Link>
         </div>
         {prefs.universes.length === 0 && <p className="small" style={{ padding: '14px 0', borderTop: '1px solid #222B38' }}>{t('Nothing saved yet. Run a what-if and save it here.')}</p>}
         {prefs.universes.map((u) => <UniverseRow key={u.id} u={u} on={u.prompt === prompt && phase === 'done'} open={() => start(u.prompt)} />)}

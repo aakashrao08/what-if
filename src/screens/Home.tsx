@@ -116,7 +116,7 @@ function AskBox() {
     <form onSubmit={(e) => { e.preventDefault(); go(q); }} className="stack-8" style={{ width: 'min(680px, 100%)', gap: 10, marginTop: 10 }} role="search" aria-label={t('Ask What If')}>
       <div className="panel wrap" style={{ gap: 8, padding: 8, border: '1px solid #2A3240' }}>
         <label htmlFor="ask" className="sr">{t('Ask What If')}</label>
-        <input id="ask" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Ask anything about the matchweek or the league…')}
+        <input id="ask" maxLength={300} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Ask anything about the matchweek or the league…')}
           style={{ flex: '1 1 300px', minWidth: 0, minHeight: 50, padding: '0 14px', border: 'none', borderRadius: 8, background: '#0B0F14', color: '#F2EFE6', fontSize: 17 }} />
         <button type="submit" className="btn btn-primary" style={{ minHeight: 50, padding: '0 20px' }} disabled={busy}>{t(busy ? 'Routing…' : 'Ask')}</button>
         <MicButton lang={prefs.lang} disabled={busy} onText={(x) => go(x)} />

@@ -236,3 +236,10 @@ h1, h2, h3, p { margin: 0; }
 .mic.rec { border-color: var(--signal); color: var(--signal); animation: stepPulse 1.2s ease-in-out infinite; }
 .mic-note { max-width: 280px; }
 @media (max-width: 520px) { .mic-label { display: none; } }
+
+/* touch screens: every control at least 44px to tap (desktop keeps its compact sizes) */
+@media (pointer: coarse) {
+  .seg button { min-height: 44px !important; }
+  .tap-link { display: inline-flex; align-items: center; min-height: 44px; }
+  .switch::before { content: ''; position: absolute; inset: -8px -6px; }
+}

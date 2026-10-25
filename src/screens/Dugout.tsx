@@ -239,7 +239,7 @@ export default function Dugout() {
             </div>
             <form onSubmit={addPlayer} className="wrap">
               <label htmlFor="addp" className="sr">{t('Add a player')}</label>
-              <input id="addp" className="input" type="text" value={newPlayer} onChange={(e) => setNewPlayer(e.target.value)} placeholder={t('Add a player, e.g. Jonty Sorrelwick')} list="all-players" style={{ flex: '1 1 260px', minWidth: 0 }} />
+              <input id="addp" className="input" type="text" maxLength={60} value={newPlayer} onChange={(e) => setNewPlayer(e.target.value)} placeholder={t('Add a player, e.g. Jonty Sorrelwick')} list="all-players" style={{ flex: '1 1 260px', minWidth: 0 }} />
               <datalist id="all-players">{league.players.filter((p) => p.starter).map((p) => <option key={p.id} value={p.name} />)}</datalist>
               <button type="submit" className="btn" style={{ minHeight: 46 }}>{t('Add')}</button>
             </form>
@@ -335,7 +335,7 @@ export default function Dugout() {
             </div>
             {alertLog.length > 0 && <p className="mono dim" style={{ fontSize: 11, paddingBottom: 8 }}>{t(`Chosen and written by the Scout · ${checked} numbers checked${alertLog.some((a) => a.live) ? ' · written live' : ''}`).toUpperCase()}</p>}
             {alertLog.length === 0 && <p className="small" style={{ padding: '10px 0', borderTop: '1px solid #222B38' }}>{t(`Nothing has crossed your ${prefs.threshold}-point threshold yet.`)}</p>}
-            <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+            <div style={{ maxHeight: 260, overflowY: 'auto' }} tabIndex={0} role="region" aria-label={t('Your alerts this matchweek')}>
               {alertLog.map((a) => (
                 <div key={a.key} className="stack-8" style={{ gap: 4, padding: '12px 0', borderTop: '1px solid #222B38' }}>
                   <span className="inline mono" style={{ gap: 10, fontSize: 11 }}>
@@ -353,7 +353,7 @@ export default function Dugout() {
             <section aria-labelledby="uni-h" className="stack-8" style={{ padding: '22px 22px 14px', gap: 4 }}>
               <div className="between" style={{ marginBottom: 8 }}>
                 <h2 id="uni-h" className="h3">{t('Saved Universes')}</h2>
-                <Link to="/multiverse" style={{ fontWeight: 600, textDecoration: 'none', fontSize: 15 }}>{t('New')} →</Link>
+                <Link to="/multiverse" className="tap-link" style={{ fontWeight: 600, textDecoration: 'none', fontSize: 15 }}>{t('New')} →</Link>
               </div>
               {prefs.universes.length === 0 && <span className="small">{t('Nothing saved yet.')}</span>}
               {prefs.universes.map((u) => <SavedRow key={u.id} u={u} />)}
@@ -398,7 +398,7 @@ export default function Dugout() {
             </div>
             {(['name', 'username', 'email'] as const).map((k) => (
               <label key={k} className="stack-8" style={{ gap: 6, fontSize: 14, color: '#A9B1BD' }}>{k === 'name' ? 'Display name' : k === 'username' ? 'Username' : 'Email'}
-                <input className="input" type={k === 'email' ? 'email' : 'text'} value={editing[k]} onChange={(e) => setEditing({ ...editing, [k]: e.target.value })} style={{ fontFamily: k === 'username' ? 'var(--mono)' : undefined, fontSize: 16 }} />
+                <input className="input" maxLength={k === 'email' ? 120 : 60} type={k === 'email' ? 'email' : 'text'} value={editing[k]} onChange={(e) => setEditing({ ...editing, [k]: e.target.value })} style={{ fontFamily: k === 'username' ? 'var(--mono)' : undefined, fontSize: 16 }} />
               </label>
             ))}
             <div className="wrap" style={{ gap: 10, paddingTop: 4 }}>

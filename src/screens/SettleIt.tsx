@@ -82,7 +82,7 @@ export default function SettleIt() {
       <form onSubmit={submit} className="panel stack-12" style={{ padding: 18 }}>
         <label htmlFor="q" className="kicker">{t('The question').toUpperCase()}</label>
         <div className="wrap" style={{ gap: 10, alignItems: 'stretch' }}>
-          <textarea id="q" rows={2} className="textarea" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('Was it the substitution that cost them?')} style={{ flex: '1 1 520px', minWidth: 0, width: 'auto' }} />
+          <textarea id="q" rows={2} maxLength={300} className="textarea" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('Was it the substitution that cost them?')} style={{ flex: '1 1 520px', minWidth: 0, width: 'auto' }} />
           <button type="submit" className="btn btn-primary" style={{ minHeight: 56, padding: '0 26px', fontSize: 16 }} disabled={busy}>{t('Settle it')}</button>
           <MicButton lang={prefs.lang} disabled={busy} onText={(q) => ask(q)} />
         </div>

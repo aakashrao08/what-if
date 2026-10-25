@@ -36,7 +36,7 @@ export default function Squad() {
     return () => { alive = false; };
   }, [club?.code]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!club) return <section className="stack-16" style={{ padding: '36px 0' }}><h1 className="h1">No such club</h1><Link to="/league">← Back to Current Affairs</Link></section>;
+  if (!club) return <section className="stack-16" style={{ padding: '36px 0' }}><h1 className="h1">{t('No such club')}</h1><Link to="/league" className="tap-link">{t('← Back to Current Affairs')}</Link></section>;
   if (!s) return <Loading>{t('Playing out the rest of the season…')}</Loading>;
 
   const c = s.clubs.find((x) => x.code === club.code)!;
@@ -48,7 +48,7 @@ export default function Squad() {
   return (
     <>
       <section className="stack-16" style={{ padding: 'clamp(16px, 3vw, 36px) 0 8px', gap: 14 }}>
-        <Link to="/league" className="small" style={{ textDecoration: 'none' }}>← Current Affairs</Link>
+        <Link to="/league" className="small tap-link" style={{ textDecoration: 'none' }}>{t('← Current Affairs')}</Link>
         <span className="inline" style={{ gap: 10 }}><Crest code={club.code} /><span className="kicker">{club.nickname.toUpperCase()} · {club.ground.toUpperCase()} · MANAGER {club.manager.toUpperCase()}</span></span>
         <h1 className="h1">{club.name}</h1>
         <Handoff />
@@ -91,9 +91,9 @@ export default function Squad() {
                     {squad.filter((p) => p.pos === pos).sort((a, b) => Number(b.starter) - Number(a.starter) || a.number - b.number).map((p) => {
                       const d = impactOf(p.id);
                       return (
-                        <tr key={p.id} onClick={() => setPlayer(p.id)} style={{ cursor: 'pointer', opacity: p.starter ? 1 : 0.75 }}>
+                        <tr key={p.id} onClick={() => setPlayer(p.id)} style={{ cursor: 'pointer' }}>
                           <td className="l mono dim" style={{ width: 36 }}>{p.number}</td>
-                          <td className="l"><button type="button" className="linkbtn" onClick={(e) => { e.stopPropagation(); setPlayer(p.id); }}>{p.name}</button></td>
+                          <td className="l"><button type="button" className="linkbtn" onClick={(e) => { e.stopPropagation(); setPlayer(p.id); }}>{p.name}</button>{!p.starter && <span className="mono dim" style={{ fontSize: 11, marginLeft: 8 }}>{t('bench').toUpperCase()}</span>}</td>
                           <td className="wide mono dim" style={{ fontSize: 12 }}>{t(roleOf(p))}</td>
                           <td className="dim">{p.apps ?? 0}</td>
                           {cols.map((k, i) => { const v = STAT[k].get(p); return <td key={k} className={i >= 2 ? 'wide' : undefined}>{STAT[k].digits ? v.toFixed(STAT[k].digits) : v || <span className="dim">0</span>}</td>; })}

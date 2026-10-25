@@ -65,7 +65,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       for (const text of chunk) {
         const tr = reply.texts[keyOf(text)];
         // the browser checks it again: same numbers as the English, nothing else
-        if (tr && verify(tr, factsFromText(text), lang).ok) { cache.current.set(text, tr); added++; }
+        if (tr && !/https?:\/\/|www\.|<\/?[a-z]/i.test(tr) && verify(tr, factsFromText(text), lang).ok) { cache.current.set(text, tr); added++; }
       }
       if (added) {
         try { localStorage.setItem(storeKey(lang), JSON.stringify(Object.fromEntries(cache.current))); } catch { /* storage full or blocked */ }

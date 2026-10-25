@@ -47,6 +47,15 @@ const limiter = new RateLimiter(Number(process.env.AGENT_RATE_PER_10MIN) || 30, 
 /** Refuse a body bigger than the endpoint needs before reading it. */
 const tooBig = (req: HttpRequest, max: number): HttpResponseInit | null => (Number(req.headers.get('content-length') ?? 0) > max ? { status: 413, jsonBody: { error: 'Request too large.' } } : null);
 
+/** Browsers can't send application/json or audio/wav cross-site without permission, so requiring them
+ *  stops other websites from spending a visitor's allowance through simple form or text posts. */
+const wrongType = (req: HttpRequest, type: string): HttpResponseInit | null => ((req.headers.get('content-type') ?? '').toLowerCase().startsWith(type) ? null : { status: 415, jsonBody: { error: `Send ${type}.` } });
+
+// site-wide ceilings per minute, on top of the per-visitor limits: forged addresses can't flood the model
+const agentBurst = new RateLimiter(Number(process.env.AGENT_BURST_PER_MIN) || 40, 60_000, Number.MAX_SAFE_INTEGER);
+const translateBurst = new RateLimiter(Number(process.env.TRANSLATE_BURST_PER_MIN) || 90, 60_000, Number.MAX_SAFE_INTEGER);
+const BUSY = { status: 429, jsonBody: { error: 'The agents are busy. Try again in a minute.' } };
+
 const visitor = (req: HttpRequest) => (req.headers.get('x-forwarded-for') ?? req.headers.get('x-client-ip') ?? 'anon').split(',')[0].trim();
 
 type Pipeline = (deps: PipelineDeps, question: string, body: Record<string, unknown>) => Promise<{ ok: boolean }>;
@@ -58,7 +67,7 @@ function endpoint(name: string, pipeline: Pipeline) {
     authLevel: 'anonymous',
     handler: async (req, ctx): Promise<HttpResponseInit> => {
       if (!deps) return { status: 503, jsonBody: { error: 'Live agents are not configured (FOUNDRY_CHAT_URL, FOUNDRY_API_KEY, FOUNDRY_MODEL).' } };
-      const big = tooBig(req, 16_000);
+      const big = tooBig(req, 16_000) ?? wrongType(req, 'application/json');
       if (big) return big;
       let body: unknown;
       try { body = await req.json(); } catch { return { status: 400, jsonBody: { error: 'Body must be JSON.' } }; }
@@ -70,6 +79,7 @@ function endpoint(name: string, pipeline: Pipeline) {
       if (hit) { record(name, hit, 0, true, ctx); return { jsonBody: { ...hit, cached: true } }; }
       const limited = limiter.check(visitor(req));
       if (limited) return { status: 429, jsonBody: { error: limited } };
+      if (agentBurst.check('all')) return BUSY;
       try {
         const t0 = Date.now();
         const reply = await pipeline(deps, input.question, body as Record<string, unknown>);
@@ -90,7 +100,7 @@ endpoint('whatittakes', takesPipeline);
 endpoint('ask', askPipeline);
 
 /** A typed body (not a question): validated by `read`, cached on the validated input. */
-function structured<T extends object>(name: string, read: (body: unknown) => T | { error: string }, run: (d: PipelineDeps, input: T) => Promise<object>, limits: RateLimiter = limiter) {
+function structured<T extends object>(name: string, read: (body: unknown) => T | { error: string }, run: (d: PipelineDeps, input: T) => Promise<object>, limits: RateLimiter = limiter, burst: RateLimiter = agentBurst) {
   app.http(`agents-${name}`, {
     route: `agents/${name}`,
     methods: ['POST'],
@@ -98,7 +108,7 @@ function structured<T extends object>(name: string, read: (body: unknown) => T |
     handler: async (req, ctx): Promise<HttpResponseInit> => {
       if (!deps) return { status: 503, jsonBody: { error: 'Live agents are not configured.' } };
       let body: unknown;
-      const big = tooBig(req, 64_000);
+      const big = tooBig(req, 64_000) ?? wrongType(req, 'application/json');
       if (big) return big;
       try { body = await req.json(); } catch { return { status: 400, jsonBody: { error: 'Body must be JSON.' } }; }
       const input = read(body);
@@ -108,6 +118,7 @@ function structured<T extends object>(name: string, read: (body: unknown) => T |
       if (hit) { record(name, hit, 0, true, ctx); return { jsonBody: { ...hit, cached: true } }; }
       const limited = limits.check(visitor(req));
       if (limited) return { status: 429, jsonBody: { error: limited } };
+      if (burst.check('all')) return BUSY;
       try {
         const t0 = Date.now();
         const reply = await run(deps, input);
@@ -128,7 +139,7 @@ structured('scout', (b) => readScout(b, league), scoutPipeline);
 
 // translation has its own allowance (a page can need a few batches), so it never eats into the agents'
 const translateLimiter = new RateLimiter(Number(process.env.TRANSLATE_PER_10MIN) || 120, 10 * 60_000, Number(process.env.TRANSLATE_DAILY_LIMIT) || 4000);
-structured('translate', readTranslate, translatePipeline, translateLimiter);
+structured('translate', readTranslate, translatePipeline, translateLimiter, translateBurst);
 
 const timelines = new Map<string, Timeline>();
 app.http('overlay', {
@@ -157,15 +168,16 @@ app.http('mcp', {
     // stateless server: no server-sent event stream and no sessions to end
     if (req.method !== 'POST') return { status: 405, headers: { Allow: 'POST' }, jsonBody: { error: 'POST JSON-RPC messages to this endpoint.' } };
     let body: unknown;
-    const big = tooBig(req, 64_000);
+    const big = tooBig(req, 64_000) ?? wrongType(req, 'application/json');
     if (big) return big;
     try { body = await req.json(); } catch { return { status: 400, jsonBody: { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } } }; }
     const calls = Array.isArray(body) ? body : [body];
+    if (calls.length > 10) return { status: 400, jsonBody: { jsonrpc: '2.0', id: null, error: { code: -32600, message: 'At most 10 messages per batch.' } } };
     const called = calls.filter((m) => (m as { method?: string })?.method === 'tools/call').map((m) => String((m as { params?: { name?: unknown } }).params?.name ?? ''));
-    if (called.length) {
-      // the simulation-heavy tools get their own, tighter limit so the endpoint can't be used as free compute
-      const heavy = called.some((n) => HEAVY_TOOLS.has(n));
-      const limited = limiter.check(visitor(req)) ?? (heavy ? heavyLimiter.check(visitor(req)) : null);
+    // every tool call counts, and the simulation-heavy ones also count against their own tighter limit,
+    // so a batch can't be used as free compute
+    for (const n of called) {
+      const limited = limiter.check(visitor(req)) ?? (HEAVY_TOOLS.has(n) ? heavyLimiter.check(visitor(req)) : null);
       if (limited) return { status: 429, jsonBody: { jsonrpc: '2.0', id: null, error: { code: -32000, message: limited } } };
     }
     const replies = (await Promise.all(calls.map((m) => handleMcp(tools, m)))).filter((r) => r !== null);
@@ -186,7 +198,7 @@ app.http('speech-speak', {
   handler: async (req, ctx): Promise<HttpResponseInit> => {
     if (!speech) return { status: 503, jsonBody: { error: 'Speech is not configured (SPEECH_KEY, SPEECH_REGION).' } };
     let body: unknown;
-    const big = tooBig(req, 8_000);
+    const big = tooBig(req, 8_000) ?? wrongType(req, 'application/json');
     if (big) return big;
     try { body = await req.json(); } catch { return { status: 400, jsonBody: { error: 'Body must be JSON.' } }; }
     const input = readSpeak(body, langIds);
@@ -211,7 +223,7 @@ app.http('speech-hear', {
     if (!speech) return { status: 503, jsonBody: { error: 'Speech is not configured (SPEECH_KEY, SPEECH_REGION).' } };
     const lang = req.query.get('lang') ?? 'en';
     if (!langIds.includes(lang as Lang)) return { status: 400, jsonBody: { error: 'Unknown language.' } };
-    const big = tooBig(req, 600_000);
+    const big = tooBig(req, 600_000) ?? wrongType(req, 'audio/wav');
     if (big) return big;
     const wav = new Uint8Array(await req.arrayBuffer());
     const bad = checkWav(wav);

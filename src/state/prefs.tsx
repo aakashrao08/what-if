@@ -1,6 +1,7 @@
 // My Dugout settings, shared by every screen and kept in this browser.
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Lang, Persona } from '../agents/format';
+import { LANGS, type Lang, type Persona } from '../agents/format';
+import { league } from '../data/league';
 import type { ScenarioKind } from '../agents/drFootball';
 
 export type Depth = 'casual' | 'fan' | 'analyst';
@@ -41,11 +42,45 @@ const DEFAULTS: Prefs = {
 
 const KEY = 'whatif.prefs.v1';
 
+/** Saved settings are only trusted field by field: anything stale or malformed (a club or player that
+ *  no longer exists, an unknown language, a wrong type) falls back to its default instead of breaking a screen. */
+export function sanitize(raw: unknown): Prefs {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const clubs = new Set(league.clubs.map((c) => c.code));
+  const players = new Set(league.players.map((p) => p.id));
+  const str = (v: unknown, max: number, d: string) => (typeof v === 'string' && v.length <= max ? v : d);
+  const club = typeof r.club === 'string' && clubs.has(r.club) ? r.club : DEFAULTS.club;
+  const list = (v: unknown, ok: Set<string>, max: number) => (Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === 'string' && ok.has(x)))].slice(0, max) : null);
+  const picked = list(r.players, players, 12) ?? DEFAULTS.players;
+  const a = (r.alerts && typeof r.alerts === 'object' ? r.alerts : {}) as Record<string, unknown>;
+  const p = (r.profile && typeof r.profile === 'object' ? r.profile : {}) as Record<string, unknown>;
+  const universes = Array.isArray(r.universes)
+    ? r.universes.filter((u): u is SavedUniverse => !!u && typeof u === 'object' && ['id', 'prompt', 'kind', 'title', 'date'].every((k) => typeof (u as Record<string, unknown>)[k] === 'string')).slice(0, 30)
+    : DEFAULTS.universes;
+  return {
+    club,
+    also: (list(r.also, clubs, 6) ?? DEFAULTS.also).filter((c) => c !== club),
+    players: picked,
+    focus: r.focus === null ? null : typeof r.focus === 'string' && picked.includes(r.focus) ? r.focus : picked.includes(DEFAULTS.focus ?? '') ? DEFAULTS.focus : null,
+    depth: (['casual', 'fan', 'analyst'] as const).find((d) => d === r.depth) ?? DEFAULTS.depth,
+    lang: LANGS.find((l) => l.id === r.lang)?.id ?? DEFAULTS.lang,
+    watchAs: r.watchAs === null ? null : (['casual', 'home', 'away', 'analyst'] as Persona[]).find((x) => x === r.watchAs) ?? null,
+    alerts: { swing: typeof a.swing === 'boolean' ? a.swing : DEFAULTS.alerts.swing, ghost: typeof a.ghost === 'boolean' ? a.ghost : DEFAULTS.alerts.ghost, ripple: typeof a.ripple === 'boolean' ? a.ripple : DEFAULTS.alerts.ripple, others: typeof a.others === 'boolean' ? a.others : DEFAULTS.alerts.others },
+    threshold: [10, 15, 20].includes(r.threshold as number) ? (r.threshold as number) : DEFAULTS.threshold,
+    profile: {
+      name: str(p.name, 60, DEFAULTS.profile.name) || DEFAULTS.profile.name,
+      username: str(p.username, 60, DEFAULTS.profile.username),
+      email: str(p.email, 120, DEFAULTS.profile.email),
+      avatar: typeof p.avatar === 'string' && /^#[0-9a-f]{6}$/i.test(p.avatar) ? p.avatar : DEFAULTS.profile.avatar
+    },
+    universes
+  };
+}
+
 function load(): Prefs {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return DEFAULTS;
-    return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Prefs>) };
+    return raw ? sanitize(JSON.parse(raw)) : DEFAULTS;
   } catch {
     return DEFAULTS;
   }
