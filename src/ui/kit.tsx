@@ -272,6 +272,7 @@ export function MicButton({ lang, onText, disabled }: { lang: Lang; onText: (tex
   const rec = useRef<Recording | null>(null);
   const [state, setState] = useState<'idle' | 'listening' | 'hearing'>('idle');
   const [note, setNote] = useState<string | null>(null);
+  const opening = useRef(false); // a second tap while the microphone is still opening is ignored
   const on = useSpeech();
   if (!on || typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return null;
   const finish = async () => {
@@ -288,8 +289,9 @@ export function MicButton({ lang, onText, disabled }: { lang: Lang; onText: (tex
   const go = async () => {
     setNote(null);
     if (state === 'listening') { void finish(); return; }
-    if (state !== 'idle') return;
-    try { rec.current = await startRecording(() => void finish()); setState('listening'); } catch { setNote(t('No microphone access. Type your question instead.')); }
+    if (state !== 'idle' || opening.current) return;
+    opening.current = true;
+    try { rec.current = await startRecording(() => void finish()); setState('listening'); } catch { setNote(t('No microphone access. Type your question instead.')); } finally { opening.current = false; }
   };
   return (
     <span className="mic-wrap">
