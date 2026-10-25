@@ -1,0 +1,73 @@
+# Builds the site in live-agent mode and the agent API, then deploys both to Azure Static Web Apps.
+# Keep this filename: with GitHub identity deployment authorization, Azure finds the app from it.
+# Needs one repository secret, AZURE_STATIC_WEB_APPS_API_TOKEN_ICY_ROCK_0E0B6B300 (the static web app's deployment
+# token). The app uses GitHub identity deployment authorization, so the deploy also sends a GitHub
+# OIDC token. Without the secret the job still tests and builds, and skips the deploy.
+name: Azure Static Web Apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # the GitHub identity token Static Web Apps checks alongside the deployment token
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            api/package-lock.json
+
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix api
+
+      - name: Test
+        run: |
+          npm test
+          npm run typecheck --prefix api
+
+      - name: Build the site (live agents)
+        run: npm run build
+        env:
+          VITE_AGENT_MODE: live
+
+      - name: Build the agent API
+        run: |
+          npm run build --prefix api
+          npm run package --prefix api
+
+      # with a prebuilt app, Static Web Apps reads its config from the output folder
+      - name: Add Static Web Apps config
+        run: cp staticwebapp.config.json dist/
+
+      - name: Get GitHub identity token
+        uses: actions/github-script@v7
+        id: idtoken
+        with:
+          script: return await core.getIDToken()
+          result-encoding: string
+
+      - name: Deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ICY_ROCK_0E0B6B300 }}
+          github_id_token: ${{ steps.idtoken.outputs.result }}
+          action: upload
+          app_location: dist
+          api_location: api/deploy
+          output_location: ''
+          skip_app_build: true
+          skip_api_build: true
+        env:
+          SKIP_DEPLOY_ON_MISSING_SECRETS: true

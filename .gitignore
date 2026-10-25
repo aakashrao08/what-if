@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.tsbuildinfo
+api/local.settings.json
+api/node_modules/
+api/dist/
+.env*
+api/deploy/
+.claude/worktrees/
+
+# demo video renders (upload them; keep the repo light)
+demo/*.mp4
+demo/*.mp3
+.DS_Store

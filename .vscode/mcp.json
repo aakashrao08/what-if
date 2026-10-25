@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "what-if-engine": {
+      "type": "http",
+      "url": "https://icy-rock-0e0b6b300.4.azurestaticapps.net/api/mcp"
+    }
+  }
+}

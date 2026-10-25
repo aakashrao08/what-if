@@ -1,0 +1,14 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "FOUNDRY_CHAT_URL": "https://<your-resource>.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview",
+    "FOUNDRY_API_KEY": "<key>",
+    "FOUNDRY_MODEL": "<deployment name, e.g. gpt-4.1-mini>",
+    "FOUNDRY_TIMEOUT_MS": "15000",
+    "AGENT_RATE_PER_10MIN": "30",
+    "AGENT_DAILY_LIMIT": "1500",
+    "MCP_HEAVY_PER_10MIN": "10",
+    "MCP_HEAVY_DAILY_LIMIT": "500"
+  }
+}

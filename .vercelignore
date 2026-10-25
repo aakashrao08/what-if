@@ -1,0 +1,2 @@
+# The Azure Functions backend deploys to Azure Static Web Apps, not Vercel.
+api

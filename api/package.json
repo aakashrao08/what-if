@@ -1,0 +1,26 @@
+{
+  "name": "whatif-fc-api",
+  "version": "0.2.0",
+  "private": true,
+  "description": "What If agent backend: tool-calling agents on Microsoft Foundry with the simulation engine as their tools. Served by Azure Static Web Apps at /api.",
+  "main": "dist/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "esbuild src/functions/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/index.js --loader:.md=text --external:@azure/functions-core --log-level=warning",
+    "package": "node scripts/package.mjs",
+    "typecheck": "tsc --noEmit -p .",
+    "start": "npm run build && func start"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.10.1",
+    "@azure/functions": "^4.16.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
